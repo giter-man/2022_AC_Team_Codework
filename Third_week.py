@@ -13,18 +13,18 @@ Register = {
 }
 
 Mem = {
-    
+
 }
 
 def Decode(I_code):
     global PC
     #所有位全部是0/1是非法的RV32I指令。
+    opcode = I_code & 111111
     if(opcode == 0x00000000):
         print("ERROR0")
     if(opcode == 0xFFFFFFFF):
         print("ERROR1")
 
-    opcode = I_code & 111111
     match opcode:
         case 0b0110111 | 0b0010111 | 0b1101111:#J型指令
             offset = Jump(I_code)
