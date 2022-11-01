@@ -4,16 +4,24 @@
 # 只实现通用寄存器，寄存器使用字典[Register_number : data/instruction]实现。
 
 Register = {
-    #RV32I有31个寄存器加上一个值恒为0的x0寄存器。
-    0b00001 : 0x00000000,       #临时寄存器r1，初始内容为0
-    0b00010 : 0x00000000,       #临时寄存器r2，初始内容为0
-    0b00011 : 0x00000000,       #临时寄存器r3，初始内容为0
+    # RV32I有31个寄存器加上一个值恒为0的x0寄存器。
+    0b00001: 0x00000000,  # 临时寄存器r1，初始内容为0
+    0b00010: 0x00000001,  # 临时寄存器r2，初始内容为0
+    0b00011: 0x00000002,  # 临时寄存器r3，初始内容为0
 
-    0b00100 : 0x00000010        #
+    0b00100: 0x00000010  #
 }
 
 Mem = {
-    #内存存指令和数据
+    # 内存存指令和数据
+    # RR型
+    # add r1,r2,r3
+    # 0000000 00010 00011 000 00001 0110011
+    # 0000 0000 0010 0001 1000 0000 1011 0011
+    0x00000000: 0x00,
+    0x00000001: 0x21,
+    0x00000002: 0x80,
+    0x00000003: 0xb3
 }
 
 def Decode(I_code):
@@ -111,6 +119,7 @@ def RR(I_code):
         case 0b000:
             if(funct7 == 0b0000000):#add: x[rd] = x[rs1] + x[rs2]
                 Register[rd] = Register[rs1] + Register[rs2]
+                print(Register[rd])
             elif(funct7 == 0b0100000):#sub: x[rd] = x[rs1] + x[rs2]
                 Register[rd] = Register[rs1] + Register[rs2] 
         case _:
@@ -157,6 +166,13 @@ def Store(I_code):
         case 0b010:#sw: M[x[rs1] + sext(offset)] = x[rs2][31: 0]
             Mem[Register[rs1]+offset] = Register[rs2] 
 
+# 取指令
+def defInstr(addr):  # 传入参数为指令在内存的地址
+    instru = 0x00000000
+    for i in range(4):
+        instru = instru * 256 + Mem[addr + i]
+    return instru
+
 def main():
     #RISC-V指令集中程序计数器PC是用硬件实现的，这里仅对PC功能进行描述。
     
@@ -168,12 +184,14 @@ def main():
     #         I_code = bytes(I_code)
     #     print(I_code)
     #     print(I_code.hex('-'))
-    
+
     PC = 0x00000000
-    I_code = Mem[PC]
-    while(1):
-        PC += 4
-        Decode(I_code)
-        I_code = Mem[PC]
+    I_code = defInstr(PC)
+    print("当前指令为：" + "0x%08x" % (I_code))
+    Decode(I_code)
+    # while(1):
+    #     Decode(I_code)
+    #     I_code = Mem[PC]
+    #     PC += 4
 
 main()
