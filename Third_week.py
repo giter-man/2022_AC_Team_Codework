@@ -3,6 +3,9 @@
 # 定义内存文件，采用字节编址和小端存储，按双字对齐地址。首地址默认为 0x00000000
 # 只实现通用寄存器，寄存器使用字典[register_number : data/instruction]实现。
 
+from atexit import register
+
+
 Register = {
     #RV32I有31个寄存器加上一个值恒为0的x0寄存器。
     0b00001 : 0x00000000,       #临时寄存器r1，初始内容为0
@@ -13,20 +16,20 @@ Register = {
 }
 
 Mem = {
-
+    #内存存指令和数据
 }
 
 def Decode(I_code):
     global PC
     #所有位全部是0/1是非法的RV32I指令。
-    opcode = I_code & 111111
+    opcode = I_code & 0b111111
     if(opcode == 0x00000000):
         print("ERROR0")
     if(opcode == 0xFFFFFFFF):
         print("ERROR1")
 
     match opcode:
-        case 0b0110111 | 0b0010111 | 0b1101111:#J型指令
+        case 0b0110111 | 0b0010111 | 0b1101111 | 0b1100111:#跳转类指令
             offset = Jump(I_code)
             if(offset):
                 PC = offset - 4
@@ -36,7 +39,7 @@ def Decode(I_code):
                 PC = offset - 4
         case 0b0110011:#R型指令
             RR(I_code)
-        case 0b1100111 | 0b0000011 | 0b0010011 | 0b0001111 | 0b1110011:#I型指令
+        case 0b0000011 | 0b0010011 | 0b0001111 | 0b1110011:#I型指令
             RI(I_code)
         case 0b0100011:#S型指令
             Store(I_code)
@@ -45,6 +48,34 @@ def Decode(I_code):
 def Jump(I_code):
     #函数返回偏移量
     #用于长立即数的U型指令和用于无条件跳转的J型指令
+    opcode = I_code & 0b111111
+    rd = (I_code >> 7) & 0b11111
+    match opcode:
+        case 0b0110111:#lui
+            return 
+        case 0b0010111:#auipc
+            return
+        case 0b1101111:#jal: x[rd] = pc+4; pc += sext(offset)
+            Register[rd] = PC#rd默认为1
+            imm1_j = (I_code >> 21) & 0b111111111   #[10:1]
+            imm2_j = I_code >> 20                   #[11]
+            imm3_j = (I_code >> 12) & 0b111111111   #[19:12]
+            sign = I_code >> 31                     #[20]
+            if(sign == 0b0):
+                offset = imm1_j << 1 + imm2_j << 11 + imm3_j << 12
+            else:
+                offset = (-1) * (imm1_j << 1 + imm2_j << 11 + imm3_j << 12)
+            return offset
+        case 0b1100111:#jalr: x[rd] = pc+4; pc=(x[rs1]+sext(offset))&~1
+            Register[rd] = PC#rd默认为1
+            rs1 = (I_code >> 15) & 0b11111
+            imm_jr = (I_code >> 20) & 0b1111111111 #[10:0]
+            sign = I_code >> 31                     #[20]
+            if(sign == 0b0):
+                offset = Register[rs1] + imm_jr
+            else:
+                offset = Register[rs1] + (-1) * imm_jr
+            return offset
     return 0
 def Branch(I_code):
     #函数返回偏移量
@@ -70,18 +101,48 @@ def Branch(I_code):
     return 0
 def RR(I_code):
     #用于寄存器-寄存器操作的R型指令
+    funct3 = (I_code >> 12) & 0b111
+    rd = (I_code >> 7) & 0b11111
+    rs2 = (I_code >> 15) & 0b11111
+    rs1 = (I_code >> 20) & 0b11111
+    funct7 = (I_code >> 25) & 0b1111111
+
+    match funct3:
+        case 0b000:
+            if(funct7 == 0b0000000):#add: x[rd] = x[rs1] + x[rs2]
+                register[rd] = register[rs1] + register[rs2]
+            elif(funct7 == 0b0100000):#sub: x[rd] = x[rs1] + x[rs2]
+                register[rd] = register[rs1] + register[rs2] 
+        case _:
+            print("待定") 
     return
 def RI(I_code):
     #用于短立即数和访存操作的I型指令
     return 
-def Store():
+def Store(I_code):
     #用于访存操作的S型指令
+    funct3 = (I_code >> 12) & 0b111
+    rs2 = (I_code >> 15) & 0b11111
+    rs1 = (I_code >> 20) & 0b11111
+    imm1 = (I_code >> 7) & 0b11111      #[4:0]
+    imm2 = (I_code >> 25) & 0b111111    #[10:5]
+    sign = I_code >> 31
+    if(sign == 0b0):
+        offset = imm1 + imm2 << 5
+    else:
+        offset = (-1) * (imm1 + imm2 << 5)
+    match funct3:
+        case 0b000:#sb: M[x[rs1] + sext(offset)] = x[rs2][7: 0]
+            Mem[Register[rs1]+offset] = Register[rs2] & 0x00
+        case 0b001:#sh: M[x[rs1] + sext(offset)] = x[rs2][15: 0]
+            Mem[Register[rs1]+offset] = Register[rs2] & 0x0000
+        case 0b010:#sw: M[x[rs1] + sext(offset)] = x[rs2][31: 0]
+            Mem[Register[rs1]+offset] = Register[rs2]
     return 
-
-
 
 def main():
     #RISC-V指令集中程序计数器PC是用硬件实现的，这里仅对PC功能进行描述。
+    
     # with open('Memory.bin', 'rb') as f:
     #     PC = f
     #     I_code = bytes(4)
