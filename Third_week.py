@@ -1,10 +1,7 @@
 # 采用RISC-V 32I基础指令集，实现5种指令类型的微操作。
 # 由于32I基础指令集只支持32位字节可寻址的地址空间，故内存大小为4GB。
 # 定义内存文件，采用字节编址和小端存储，按双字对齐地址。首地址默认为 0x00000000
-# 只实现通用寄存器，寄存器使用字典[register_number : data/instruction]实现。
-
-from atexit import register
-
+# 只实现通用寄存器，寄存器使用字典[Register_number : data/instruction]实现。
 
 Register = {
     #RV32I有31个寄存器加上一个值恒为0的x0寄存器。
@@ -45,6 +42,7 @@ def Decode(I_code):
             Store(I_code)
         case _:
             print("ERROR3")   
+
 def Jump(I_code):
     #函数返回偏移量
     #用于长立即数的U型指令和用于无条件跳转的J型指令
@@ -77,6 +75,7 @@ def Jump(I_code):
                 offset = Register[rs1] + (-1) * imm_jr
             return offset
     return 0
+
 def Branch(I_code):
     #函数返回偏移量
     #用于条件跳转操作的B型指令
@@ -99,6 +98,7 @@ def Branch(I_code):
         case _:
             print("待定") 
     return 0
+
 def RR(I_code):
     #用于寄存器-寄存器操作的R型指令
     funct3 = (I_code >> 12) & 0b111
@@ -110,9 +110,9 @@ def RR(I_code):
     match funct3:
         case 0b000:
             if(funct7 == 0b0000000):#add: x[rd] = x[rs1] + x[rs2]
-                register[rd] = register[rs1] + register[rs2]
+                Register[rd] = Register[rs1] + Register[rs2]
             elif(funct7 == 0b0100000):#sub: x[rd] = x[rs1] + x[rs2]
-                register[rd] = register[rs1] + register[rs2] 
+                Register[rd] = Register[rs1] + Register[rs2] 
         case _:
             print("待定") 
 
@@ -136,7 +136,6 @@ def RI(I_code):
                 print("待定")
         case _: 
             print("待定")  
-    return 
 
 def Store(I_code):
     #用于访存操作的S型指令
@@ -169,13 +168,12 @@ def main():
     #         I_code = bytes(I_code)
     #     print(I_code)
     #     print(I_code.hex('-'))
-        
+    
     PC = 0x00000000
     I_code = Mem[PC]
     while(1):
         PC += 4
         Decode(I_code)
         I_code = Mem[PC]
-        
-    return
+
 main()
