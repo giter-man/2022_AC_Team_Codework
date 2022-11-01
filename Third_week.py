@@ -82,8 +82,8 @@ def Branch(I_code):
     #用于条件跳转操作的B型指令
     #B型指令： immediate[12|10:5]  rs2  rs1     funct3  immediate[4:1|11] opcode
     funct3 = (I_code >> 12) & 0b111
-    rs2 = (I_code >> 15) & 0b11111
-    rs1 = (I_code >> 20) & 0b11111
+    rs2 = (I_code >> 20) & 0b11111
+    rs1 = (I_code >> 15) & 0b11111
     imm1 = (I_code >> 8) & 0b1111
     imm2 = (I_code >> 25) & 0b111111
     imm3 = (I_code >> 7) & 0b1
@@ -103,8 +103,8 @@ def RR(I_code):
     #用于寄存器-寄存器操作的R型指令
     funct3 = (I_code >> 12) & 0b111
     rd = (I_code >> 7) & 0b11111
-    rs2 = (I_code >> 15) & 0b11111
-    rs1 = (I_code >> 20) & 0b11111
+    rs2 = (I_code >> 20) & 0b11111
+    rs1 = (I_code >> 15) & 0b11111
     funct7 = (I_code >> 25) & 0b1111111
 
     match funct3:
@@ -115,15 +115,34 @@ def RR(I_code):
                 register[rd] = register[rs1] + register[rs2] 
         case _:
             print("待定") 
-    return
+
 def RI(I_code):
     #用于短立即数和访存操作的I型指令
+    opcode = I_code & 0b111111
+    funct3 = (I_code >> 12) & 0b111
+    rs1 = (I_code >> 15) & 0b11111
+    rd = (I_code >> 7) & 0b11111
+    sign = I_code >> 31
+    imm = (I_code >> 20) & 0b1111111111
+    if(sign == 0b0):
+        offset = imm
+    else:
+        offset = (-1) * imm
+    match opcode:
+        case 0b0000011:#load 指令
+            if(funct3 == 0b010):#lw: x[rd] = sext(M[x[rs1] + sext(offset)][31:0])
+                Register[rd] = Mem[Register[rs1] + offset]
+            else:
+                print("待定")
+        case _: 
+            print("待定")  
     return 
+
 def Store(I_code):
     #用于访存操作的S型指令
     funct3 = (I_code >> 12) & 0b111
-    rs2 = (I_code >> 15) & 0b11111
-    rs1 = (I_code >> 20) & 0b11111
+    rs2 = (I_code >> 20) & 0b11111
+    rs1 = (I_code >> 15) & 0b11111
     imm1 = (I_code >> 7) & 0b11111      #[4:0]
     imm2 = (I_code >> 25) & 0b111111    #[10:5]
     sign = I_code >> 31
@@ -137,8 +156,7 @@ def Store(I_code):
         case 0b001:#sh: M[x[rs1] + sext(offset)] = x[rs2][15: 0]
             Mem[Register[rs1]+offset] = Register[rs2] & 0x0000
         case 0b010:#sw: M[x[rs1] + sext(offset)] = x[rs2][31: 0]
-            Mem[Register[rs1]+offset] = Register[rs2]
-    return 
+            Mem[Register[rs1]+offset] = Register[rs2] 
 
 def main():
     #RISC-V指令集中程序计数器PC是用硬件实现的，这里仅对PC功能进行描述。
