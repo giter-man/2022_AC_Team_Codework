@@ -116,7 +116,7 @@ def main():
     instrlist = [
         "fld f00,00(x1)",
         "fld f06,08(x1)",
-        "fld f00,16(x1)",
+        "fld f10,16(x1)",
         "fld f14,24(x1)",
         "fadd.d f04,f00,f02",
         "fadd.d f08,f06,f02",
