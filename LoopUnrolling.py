@@ -120,7 +120,7 @@ def main():
         "fld f14,24(x1)",
         "fadd.d f04,f00,f02",
         "fadd.d f08,f06,f02",
-        "fadd.d f12,f00,f02",
+        "fadd.d f12,f10,f02",
         "fadd.d f16,f14,f02",
         "fsd f04,00(x1)",
         "fsd f08,08(x1)",
