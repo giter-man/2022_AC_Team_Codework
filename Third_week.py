@@ -249,13 +249,6 @@ def Get_I(I_addr):
         I_code += Mem[I_addr + i] * (256**i)
     return I_code
 
-# 取指令
-def defInstr(addr):  # 传入参数为指令在内存的地址
-    instru = 0x00000000
-    for i in range(4):
-        instru = instru * 256 + Mem[addr + i]
-    return instru
-
 def main():
     #RISC-V指令集中程序计数器PC是用硬件实现的，这里仅对PC功能进行描述。
     
